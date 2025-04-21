@@ -89,7 +89,16 @@ Architecture Diagram
        │    (AZ‑B mirrored)   │    (AZ‑B mirrored)   │  │
        └─────────────────────────────────────────────────┘
 
+🧼Clean up 
+Destroy your Terraform‑managed AWS resources
+In the same directory where you ran terraform apply (your main.tf lives):
 
+cd ~/terraform-3tier-app
+terraform destroy
+– Terraform will show you a plan of everything it will delete.
+– Type yes when prompted, or run terraform destroy -auto-approve to skip confirmation.
+
+This will delete your VPC, subnets, IGW, NAT gateway, security groups, EC2 instance, ALB, target group, listener, RDS subnet group & RDS instance.
 📄 License & Author
 Author: Bilal Khawaja
 LinkedIn: https://linkedin.com/in/bilal-khawaja-65b883243
