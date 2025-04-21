@@ -59,6 +59,9 @@ terraform plan          # shows the execution plan
 ![image](https://github.com/user-attachments/assets/bb145083-b243-4f39-aff3-f7fd5d811a11)
 
 terraform apply         # creates ~30 resources in eu‑west‑2
+
+![image](https://github.com/user-attachments/assets/1091002b-2374-404f-aeb3-1a9c8810a9e8)
+
 echo "http://$(terraform output -raw alb_dns_name)"
 
 🌐 Expected output
@@ -99,6 +102,14 @@ app.py reads those env vars and opens a psycopg2 connection—no credentials in 
 
 🧹 Clean‑up
 terraform destroy
+
+
+
+
+
+
+![image](https://github.com/user-attachments/assets/de236b86-00b4-4bf1-ad55-6bc6815ee6b9)
+
 
 📄 Author
 Bilal Khawaja
