@@ -161,30 +161,61 @@ resource "aws_instance" "flask_app_server" {
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   associate_public_ip_address = false
 
-  user_data = <<EOF
+   user_data = <<EOF
 #!/bin/bash
 set -e
+
+# ---------------------------------------------------------
+# System + Python dependencies
+# ---------------------------------------------------------
 apt-get update -y
 apt-get install -y python3-pip
-pip3 install flask
+pip3 install flask psycopg2-binary
 
-cat <<'APP' > /home/ubuntu/app.py
+# ---------------------------------------------------------
+# Write the Flask application
+# ---------------------------------------------------------
+cat > /home/ubuntu/app.py <<'APP'
 from flask import Flask
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
 app = Flask(__name__)
 
-@app.route('/')
-def hello():
-    return "Hello from Terraform EC2 Flask App!"
+def get_db_connection():
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        database="postgres",
+        user="postgresadmin",
+        password=os.getenv("DB_PASSWORD"),
+        cursor_factory=RealDictCursor,
+    )
+
+@app.route("/")
+def index():
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT version();")
+            version = cur.fetchone()["version"]
+    return f"Hello from Terraform EC2 Flask App!<br>Postgres version: {version}"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
 APP
 
-nohup python3 /home/ubuntu/app.py > /home/ubuntu/app.log 2>&1 &
-EOF
+# ---------------------------------------------------------
+# Export DB connection details (from Terraform)
+# ---------------------------------------------------------
+export DB_HOST="${aws_db_instance.postgres.address}"
+export DB_PASSWORD="${var.db_password}"
 
-  tags = { Name = "terraform-flask-app-server" }
-}
+# ---------------------------------------------------------
+# Launch the app
+# ---------------------------------------------------------
+nohup env DB_HOST="$DB_HOST" DB_PASSWORD="$DB_PASSWORD" \
+     python3 /home/ubuntu/app.py > /home/ubuntu/app.log 2>&1 &
+EOF
 
 # -----------------------------------------------------------------------------
 # 20–23. Application Load Balancer
