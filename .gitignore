@@ -1,0 +1,14 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Python
+flask-venv/
+__pycache__/
+*.pyc
+app.log
+
+# IDE / OS
+.vscode/
+.DS_Store
