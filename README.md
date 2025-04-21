@@ -38,9 +38,8 @@ terraform-3tier-flask-rds/ ├── main.tf # Terraform configuration ├──
 ## ⚙️ Deployment
 
 1. **Clone** this repo:  
-   ```bash
-   git clone https://github.com/Bilal31313/terraform-3tier-flask-rds.git
-   cd terraform-3tier-flask-rds
+   git clone https://github.com/Bilal31313/terraform-aws-3tier-flask-rds-project.git 
+
 
 Initialize Terraform (downloads providers, sets up state):
 
