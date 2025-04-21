@@ -43,6 +43,19 @@ terraform plan          # shows the execution plan
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 ![image](https://github.com/user-attachments/assets/bb145083-b243-4f39-aff3-f7fd5d811a11)
 
 terraform apply         # creates ~30 resources in eu‑west‑2
