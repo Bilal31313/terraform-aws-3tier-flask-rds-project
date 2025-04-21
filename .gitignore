@@ -1,14 +1,26 @@
+# ───────────────────────────
 # Terraform
-.terraform/
-*.tfstate
-*.tfstate.backup
+# ───────────────────────────
+.terraform/                 # provider plugins & cache
+*.tfstate                   # state files
+*.tfstate.backup            # backup state
+terraform.tfstate*          # remote‑backend pulls
+terraform.tfstate.d/        # partial local state for workspaces
+*.tfvars                    # variable files (keep secrets out of Git)
+*.tfplan                    # binary plan files
+.terraform.lock.hcl         # provider version lock
 
-# Python
+# ───────────────────────────
+# Python / Flask
+# ───────────────────────────
 flask-venv/
 __pycache__/
 *.pyc
 app.log
 
+# ───────────────────────────
 # IDE / OS
+# ───────────────────────────
 .vscode/
+.idea/
 .DS_Store
