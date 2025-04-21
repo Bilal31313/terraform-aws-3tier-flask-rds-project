@@ -1,5 +1,5 @@
 # Terraform AWS 3‑Tier Flask + RDS Project
-# Terraform AWS **3‑Tier Flask + RDS** Project
+
 
 A fully automated deployment of a classic 3‑tier web stack:
 
