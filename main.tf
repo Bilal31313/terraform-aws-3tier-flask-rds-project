@@ -1,164 +1,116 @@
+# -----------------------------------------------------------------------------
 # 1. Configure the AWS Provider
+# -----------------------------------------------------------------------------
 provider "aws" {
-  region = "eu-west-2"   # London region
+  region = "eu-west-2" # London region
 }
 
-# 2. Create a new VPC
+# -----------------------------------------------------------------------------
+# 2–17. Networking (VPC, Subnets, IGW, NAT, Route Tables)
+# -----------------------------------------------------------------------------
 resource "aws_vpc" "main_vpc" {
   cidr_block = "10.0.0.0/16"
-
   tags = {
     Name = "terraform-3tier-vpc"
   }
 }
 
-# 3. Create an Internet Gateway
 resource "aws_internet_gateway" "main_igw" {
   vpc_id = aws_vpc.main_vpc.id
-
-  tags = {
-    Name = "terraform-3tier-igw"
-  }
+  tags = { Name = "terraform-3tier-igw" }
 }
 
-# 4. Create Public Subnet 1
+# Public subnets (AZ a & b)
 resource "aws_subnet" "public_subnet_1" {
   vpc_id                  = aws_vpc.main_vpc.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "eu-west-2a"
-
   map_public_ip_on_launch = true
-
-  tags = {
-    Name = "terraform-public-subnet-1"
-  }
+  tags = { Name = "terraform-public-subnet-1" }
 }
-
-# 5. Create Public Subnet 2
 resource "aws_subnet" "public_subnet_2" {
   vpc_id                  = aws_vpc.main_vpc.id
   cidr_block              = "10.0.2.0/24"
   availability_zone       = "eu-west-2b"
-
   map_public_ip_on_launch = true
-
-  tags = {
-    Name = "terraform-public-subnet-2"
-  }
+  tags = { Name = "terraform-public-subnet-2" }
 }
 
-# 6. Create Public Route Table
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.main_vpc.id
-
-  tags = {
-    Name = "terraform-public-rt"
-  }
+  tags   = { Name = "terraform-public-rt" }
 }
-
-# 7. Create a Route to Internet via IGW
-resource "aws_route" "default_route" {
+resource "aws_route" "public_internet" {
   route_table_id         = aws_route_table.public_rt.id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.main_igw.id
 }
-
-# 8. Associate Public Subnet 1 with Public Route Table
 resource "aws_route_table_association" "public_subnet_1_assoc" {
   subnet_id      = aws_subnet.public_subnet_1.id
   route_table_id = aws_route_table.public_rt.id
 }
-
-# 9. Associate Public Subnet 2 with Public Route Table
 resource "aws_route_table_association" "public_subnet_2_assoc" {
   subnet_id      = aws_subnet.public_subnet_2.id
   route_table_id = aws_route_table.public_rt.id
 }
 
-# 10. Create Private Subnet 1 (App Server)
+# Private subnets (AZ a & b)
 resource "aws_subnet" "private_subnet_1" {
-  vpc_id                  = aws_vpc.main_vpc.id
-  cidr_block              = "10.0.3.0/24"
-  availability_zone       = "eu-west-2a"
-
-  map_public_ip_on_launch = false
-
-  tags = {
-    Name = "terraform-private-subnet-1"
-  }
+  vpc_id            = aws_vpc.main_vpc.id
+  cidr_block        = "10.0.3.0/24"
+  availability_zone = "eu-west-2a"
+  tags              = { Name = "terraform-private-subnet-1" }
 }
-
-# 11. Create Private Subnet 2 (Database)
 resource "aws_subnet" "private_subnet_2" {
-  vpc_id                  = aws_vpc.main_vpc.id
-  cidr_block              = "10.0.4.0/24"
-  availability_zone       = "eu-west-2b"
-
-  map_public_ip_on_launch = false
-
-  tags = {
-    Name = "terraform-private-subnet-2"
-  }
+  vpc_id            = aws_vpc.main_vpc.id
+  cidr_block        = "10.0.4.0/24"
+  availability_zone = "eu-west-2b"
+  tags              = { Name = "terraform-private-subnet-2" }
 }
 
-# 12. Create Elastic IP for NAT Gateway
+# NAT Gateway for egress from private subnets
 resource "aws_eip" "nat_eip" {
   domain = "vpc"
-
-  tags = {
-    Name = "terraform-nat-eip"
-  }
+  tags   = { Name = "terraform-nat-eip" }
 }
-
-# 13. Create NAT Gateway
 resource "aws_nat_gateway" "main_nat" {
   allocation_id = aws_eip.nat_eip.id
   subnet_id     = aws_subnet.public_subnet_1.id
-
-  tags = {
-    Name = "terraform-nat-gateway"
-  }
+  tags          = { Name = "terraform-nat-gateway" }
 }
 
-# 14. Create Private Route Table
 resource "aws_route_table" "private_rt" {
   vpc_id = aws_vpc.main_vpc.id
-
-  tags = {
-    Name = "terraform-private-rt"
-  }
+  tags   = { Name = "terraform-private-rt" }
 }
-
-# 15. Create Route for Private Subnets to use NAT
-resource "aws_route" "private_nat_route" {
+resource "aws_route" "private_nat" {
   route_table_id         = aws_route_table.private_rt.id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.main_nat.id
 }
-
-# 16. Associate Private Subnet 1 with Private Route Table
 resource "aws_route_table_association" "private_subnet_1_assoc" {
   subnet_id      = aws_subnet.private_subnet_1.id
   route_table_id = aws_route_table.private_rt.id
 }
-
-# 17. Associate Private Subnet 2 with Private Route Table
 resource "aws_route_table_association" "private_subnet_2_assoc" {
   subnet_id      = aws_subnet.private_subnet_2.id
   route_table_id = aws_route_table.private_rt.id
 }
 
-# 18. Create Security Group for EC2
+# -----------------------------------------------------------------------------
+# 18–19. Compute Tier (EC2 + SG)
+# -----------------------------------------------------------------------------
+# Security group for the application EC2 instance. **Only ALB can reach port 5000**.
 resource "aws_security_group" "ec2_sg" {
   name        = "terraform-ec2-sg"
-  description = "Allow HTTP from ALB"
+  description = "Allow HTTP from ALB on port 5000"
   vpc_id      = aws_vpc.main_vpc.id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port       = 5000
+    to_port         = 5000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
   egress {
@@ -168,53 +120,47 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "terraform-ec2-sg"
-  }
+  tags = { Name = "terraform-ec2-sg" }
 }
 
-# 19. Create EC2 instance to host Flask App
 resource "aws_instance" "flask_app_server" {
-  ami                         = "ami-0a94c8e4ca2674d5a"
+  ami                         = "ami-0a94c8e4ca2674d5a" # Ubuntu 22.04 LTS (example)
   instance_type               = "t2.micro"
   subnet_id                   = aws_subnet.private_subnet_1.id
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   associate_public_ip_address = false
 
   user_data = <<-EOF
-#!/bin/bash
-set -e
+              #!/bin/bash
+              set -e
+              apt-get update -y
+              apt-get install -y python3-pip
+              pip3 install flask
 
-sudo apt-get update -y
-sudo apt-get install -y python3-pip
-pip3 install flask
+              cat <<'APP' > /home/ubuntu/app.py
+              from flask import Flask
+              app = Flask(__name__)
 
-cd /home/ubuntu/
+              @app.route('/')
+              def hello():
+                  return "Hello from Terraform EC2 Flask App!"
 
-cat <<EOL > app.py
-from flask import Flask
-app = Flask(__name__)
+              if __name__ == "__main__":
+                  app.run(host="0.0.0.0", port=5000)
+              APP
 
-@app.route('/')
-def hello():
-    return "Hello from Terraform EC2 Flask App!"
+              nohup python3 /home/ubuntu/app.py > /home/ubuntu/app.log 2>&1 &
+              EOF
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=80)
-EOL
-
-nohup python3 /home/ubuntu/app.py > /home/ubuntu/app.log 2>&1 &
-EOF
-
-  tags = {
-    Name = "terraform-flask-app-server"
-  }
+  tags = { Name = "terraform-flask-app-server" }
 }
 
-# 20. Security Group for ALB
+# -----------------------------------------------------------------------------
+# 20–23. Application Load Balancer
+# -----------------------------------------------------------------------------
 resource "aws_security_group" "alb_sg" {
   name        = "terraform-alb-sg"
-  description = "Allow HTTP inbound traffic"
+  description = "Allow inbound HTTP (80) from the internet"
   vpc_id      = aws_vpc.main_vpc.id
 
   ingress {
@@ -231,62 +177,70 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "terraform-alb-sg"
-  }
+  tags = { Name = "terraform-alb-sg" }
 }
 
-# 21. Target Group for Flask EC2
-resource "aws_lb_target_group" "flask_target_group" {
+resource "aws_lb" "flask_alb" {
+  name               = "terraform-flask-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
+  tags               = { Name = "terraform-flask-alb" }
+}
+
+# Target group forwards traffic on port 5000 to EC2 instances
+resource "aws_lb_target_group" "flask_tg" {
   name        = "flask-target-group"
-  port        = 80
+  port        = 5000
   protocol    = "HTTP"
-  vpc_id      = aws_vpc.main_vpc.id
   target_type = "instance"
+  vpc_id      = aws_vpc.main_vpc.id
 
   health_check {
     path                = "/"
+    port                = "5000"
     protocol            = "HTTP"
-    matcher             = "200"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
+    matcher             = "200"
   }
 }
 
-# 22. Attach EC2 instance to Target Group
+# Attach the EC2 instance to the target group
 resource "aws_lb_target_group_attachment" "flask_attachment" {
-  target_group_arn = aws_lb_target_group.flask_target_group.arn
+  target_group_arn = aws_lb_target_group.flask_tg.arn
   target_id        = aws_instance.flask_app_server.id
-  port             = 80
+  port             = 5000
 }
 
-# 23. Create ALB
-resource "aws_lb" "flask_alb" {
-  name               = "terraform-flask-alb"
-  internal           = false  # public facing
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
-
-  tags = {
-    Name = "terraform-flask-alb"
+# Listener: clients hit port 80, ALB forwards to TG (5000)
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.flask_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.flask_tg.arn
   }
 }
 
-# 26. Create Security Group for RDS
+# -----------------------------------------------------------------------------
+# 24–26. Database (RDS PostgreSQL)
+# -----------------------------------------------------------------------------
 resource "aws_security_group" "rds_sg" {
   name        = "terraform-rds-sg"
-  description = "Allow PostgreSQL access from Flask EC2 only"
+  description = "Allow Postgres from EC2 SG"
   vpc_id      = aws_vpc.main_vpc.id
 
   ingress {
-    description      = "PostgreSQL from Flask EC2 SG"
-    from_port        = 5432
-    to_port          = 5432
-    protocol         = "tcp"
-    security_groups  = [aws_security_group.ec2_sg.id]
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ec2_sg.id]
+    description     = "PostgreSQL from app tier"
   }
 
   egress {
@@ -296,24 +250,15 @@ resource "aws_security_group" "rds_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "terraform-rds-sg"
-  }
+  tags = { Name = "terraform-rds-sg" }
 }
 
 resource "aws_db_subnet_group" "db_subnet_group" {
   name       = "terraform-db-subnet-group"
-  subnet_ids = [
-    aws_subnet.private_subnet_1.id,
-    aws_subnet.private_subnet_2.id
-  ]
-
-  tags = {
-    Name = "terraform-db-subnet-group"
-  }
+  subnet_ids = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
+  tags       = { Name = "terraform-db-subnet-group" }
 }
 
-# 23. Create RDS PostgreSQL instance
 resource "aws_db_instance" "postgres" {
   identifier             = "terraform-postgres-db"
   allocated_storage      = 20
@@ -321,15 +266,12 @@ resource "aws_db_instance" "postgres" {
   engine_version         = "13.15"
   instance_class         = "db.t3.micro"
   username               = "postgresadmin"
-  password               = "*"
+  password               = "*" # TODO: use Secrets Manager or SSM Parameter Store
   db_subnet_group_name   = aws_db_subnet_group.db_subnet_group.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   skip_final_snapshot    = true
   publicly_accessible    = false
   multi_az               = false
   storage_type           = "gp2"
-
-  tags = {
-    Name = "terraform-postgres-db"
-  }
+  tags                   = { Name = "terraform-postgres-db" }
 }
