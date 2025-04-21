@@ -51,6 +51,16 @@ Postgres version: PostgreSQL 13.15 on x86_64-pc-linux-gnu, compiled by gcc ...
 ![image](https://github.com/user-attachments/assets/6e03dbed-58a2-4df1-93d4-e7a38644c1d7)
 
 🏗️ Architecture diagram
+
+
+
+
+
+
+
+
+
+
 ![image](https://github.com/user-attachments/assets/d2f7ac65-993e-4ee7-a67e-76d78fa0f7aa)
 
 
