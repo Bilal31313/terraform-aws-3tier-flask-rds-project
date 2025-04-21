@@ -53,6 +53,11 @@ Postgres version: PostgreSQL 13.15 on x86_64-pc-linux-gnu, compiled by gcc ...
 🏗️ Architecture diagram
 ![image](https://github.com/user-attachments/assets/d2f7ac65-993e-4ee7-a67e-76d78fa0f7aa)
 
+
+
+
+
+
 Why port 5000 inside?
 Flask’s default port is 5000, which keeps the example minimal—no extra reverse‑proxy layer. The ALB still exposes port 80 externally
 
@@ -69,4 +74,4 @@ terraform destroy
 
 📄 Author
 Bilal Khawaja
-LinkedIn
+[LinkedIn](https://linkedin.com/in/bilal-khawaja-65b883243)
