@@ -51,24 +51,8 @@ Postgres version: PostgreSQL 13.15 on x86_64-pc-linux-gnu, compiled by gcc ...
 ![image](https://github.com/user-attachments/assets/6e03dbed-58a2-4df1-93d4-e7a38644c1d7)
 
 🏗️ Architecture diagram
-                ┌─────────────┐
-                │  Internet   │
-                └─────┬───────┘
-                      │ :80
-                      ▼
-         ┌────────────────────────────┐
-         │   Application Load Balancer│  (public subnets)
-         └──────────┬─────────────────┘
-            forward │:80 → :5000
-                      ▼
-         ┌────────────────────────────┐
-         │   EC2 Flask App (port 5000)│  (private subnet)
-         └──────────┬─────────────────┘
-            connect │:5432
-                      ▼
-         ┌────────────────────────────┐
-         │  RDS PostgreSQL (private)  │
-         └────────────────────────────┘
+![image](https://github.com/user-attachments/assets/d2f7ac65-993e-4ee7-a67e-76d78fa0f7aa)
+
 Why port 5000 inside?
 Flask’s default port is 5000, which keeps the example minimal—no extra reverse‑proxy layer. The ALB still exposes port 80 externally
 
@@ -85,4 +69,4 @@ terraform destroy
 
 📄 Author
 Bilal Khawaja
-https://linkedin.com/in/bilal-khawaja-65b883243 
+LinkedIn
