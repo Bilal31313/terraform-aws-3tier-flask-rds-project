@@ -8,7 +8,7 @@ def get_db_connection():
         host="terraform-postgres-db.ctggoqecgawg.eu-west-2.rds.amazonaws.com",
         database="postgres",
         user="postgresadmin",
-        password="MySecurePassword123!"
+        password="*"
     )
     return conn
 
