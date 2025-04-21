@@ -216,6 +216,8 @@ export DB_PASSWORD="${var.db_password}"
 nohup env DB_HOST="$DB_HOST" DB_PASSWORD="$DB_PASSWORD" \
      python3 /home/ubuntu/app.py > /home/ubuntu/app.log 2>&1 &
 EOF
+  tags = { Name = "terraform-flask-app-server" }
+}
 
 # -----------------------------------------------------------------------------
 # 20–23. Application Load Balancer
